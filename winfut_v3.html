@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WINFUT Signal</title>
+<style>
+  :root {
+    --bg:#080c10; --panel:#0d1318; --border:#1a2530;
+    --buy:#00e676; --sell:#ff1744; --neu:#ffab00;
+    --txt:#c8d6e0; --dim:#4a6070; --acc:#00bcd4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--txt);font-family:'Arial Narrow',Arial,sans-serif;
+    min-height:100vh;padding:16px;
+    background-image:radial-gradient(ellipse at 10% 0%,rgba(0,188,212,.05) 0%,transparent 50%),
+    radial-gradient(ellipse at 90% 100%,rgba(0,230,118,.04) 0%,transparent 50%);}
+
+  /* HEADER */
+  header{display:flex;justify-content:space-between;align-items:flex-end;
+    margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+  .logo{font-size:10px;letter-spacing:4px;color:var(--dim);font-family:monospace;}
+  h1{font-size:26px;font-weight:900;letter-spacing:2px;color:#fff;text-transform:uppercase;}
+  .ts{font-family:monospace;font-size:11px;color:var(--dim);text-align:right;line-height:1.8;}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:var(--buy);margin-right:5px;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  /* STATUS */
+  .sbar{display:flex;align-items:center;gap:10px;background:var(--panel);
+    border:1px solid var(--border);border-radius:4px;padding:10px 16px;
+    margin-bottom:14px;font-family:monospace;font-size:12px;flex-wrap:wrap;}
+  #stMsg{color:var(--dim);flex:1;min-width:200px;}
+  #stUpd{color:var(--dim);font-size:10px;}
+  .btn{padding:8px 18px;background:transparent;border:1px solid var(--acc);
+    color:var(--acc);font-family:inherit;font-size:12px;font-weight:bold;
+    letter-spacing:2px;border-radius:3px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+  .btn:hover{background:var(--acc);color:var(--bg);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* COUNTDOWN */
+  .countdown{font-family:monospace;font-size:11px;color:var(--acc);min-width:80px;text-align:right;}
+
+  /* LIVE CARDS */
+  .live-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px;}
+  @media(max-width:900px){.live-grid{grid-template-columns:repeat(3,1fr);}}
+  @media(max-width:500px){.live-grid{grid-template-columns:repeat(2,1fr);}}
+  .lc{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:10px 12px;}
+  .lc-name{font-size:9px;letter-spacing:2px;color:var(--dim);margin-bottom:4px;}
+  .lc-val{font-family:monospace;font-size:18px;color:#fff;margin-bottom:2px;}
+  .lc-chg{font-size:11px;}
+  .pos{color:var(--buy);} .neg{color:var(--sell);} .neu2{color:var(--neu);}
+
+  /* MACRO */
+  .mac{margin-bottom:14px;}
+  .mac-lbl{font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:6px;}
+  .mac-btns{display:flex;gap:8px;}
+  .mbtn{flex:1;padding:9px;background:transparent;border:1px solid var(--border);
+    border-radius:3px;color:var(--dim);font-family:inherit;font-size:12px;
+    font-weight:bold;letter-spacing:1px;cursor:pointer;transition:all .2s;}
+  .mbtn.abull{border-color:var(--buy);color:var(--buy);background:rgba(0,230,118,.1);}
+  .mbtn.aneu{border-color:var(--neu);color:var(--neu);background:rgba(255,171,0,.1);}
+  .mbtn.abear{border-color:var(--sell);color:var(--sell);background:rgba(255,23,68,.1);}
+
+  /* SINAL */
+  .sigbox{background:var(--panel);border:1px solid var(--border);border-radius:4px;
+    padding:20px 24px;margin-bottom:14px;display:flex;align-items:center;
+    gap:24px;flex-wrap:wrap;}
+  .sigleft{padding-left:16px;min-width:160px;}
+  .sigdir{font-size:48px;font-weight:900;letter-spacing:3px;line-height:1;}
+  .sigmeta{flex:1;min-width:200px;}
+  .slbl{font-size:10px;letter-spacing:3px;color:var(--dim);margin-bottom:5px;font-family:monospace;}
+  .srow{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .sbar2{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;}
+  .sfill{height:100%;border-radius:3px;transition:width .8s;}
+  .snum{font-family:monospace;font-size:20px;min-width:50px;text-align:right;}
+  .sdesc{font-size:13px;color:var(--dim);line-height:1.5;}
+
+  /* GAUGE */
+  .gw{display:flex;flex-direction:column;align-items:center;min-width:100px;}
+  .glbl{font-size:9px;letter-spacing:3px;color:var(--dim);margin-top:3px;font-family:monospace;}
+
+  /* CONVERGÊNCIA */
+  .convbox{background:var(--panel);border:1px solid var(--border);border-radius:4px;
+    padding:16px 20px;margin-bottom:14px;}
+  .convhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .convtit{font-size:10px;letter-spacing:3px;color:var(--dim);}
+  .convbadge{font-family:monospace;font-size:11px;font-weight:bold;
+    padding:2px 10px;border-radius:2px;letter-spacing:2px;}
+  .convsum{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+  .convpct{font-family:monospace;font-size:28px;font-weight:bold;}
+  .convsub{font-size:12px;color:var(--dim);}
+  .convdots{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+  .dwrap{display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .ddot{width:16px;height:16px;border-radius:50%;}
+  .dlbl{font-size:8px;letter-spacing:1px;color:var(--dim);font-family:monospace;}
+  .darr{color:var(--border);font-size:16px;}
+  .convadv{font-size:11px;color:var(--dim);line-height:1.6;
+    border-top:1px solid var(--border);padding-top:8px;}
+
+  /* CARDS */
+  .cgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+  @media(max-width:500px){.cgrid{grid-template-columns:1fr;}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:14px 16px;}
+  .chdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .cname{font-size:10px;letter-spacing:2px;color:var(--dim);}
+  .cbadge{font-family:monospace;font-size:9px;padding:2px 7px;border-radius:2px;font-weight:bold;}
+  .cval{font-family:monospace;font-size:22px;color:#fff;margin-bottom:3px;}
+  .cchg{font-size:12px;margin-bottom:8px;}
+  .mbar{height:2px;background:var(--border);border-radius:1px;margin-bottom:8px;overflow:hidden;}
+  .mfill{height:100%;border-radius:1px;}
+  .crat{font-size:11px;color:var(--dim);line-height:1.5;
+    border-top:1px solid var(--border);padding-top:7px;}
+  .csub{font-size:10px;color:var(--dim);font-family:monospace;}
+
+  /* SKELETON */
+  .sk{background:linear-gradient(90deg,var(--border) 25%,#1e2f3d 50%,var(--border) 75%);
+    background-size:200% 100%;animation:sh 1.5s infinite;border-radius:3px;height:20px;width:70px;}
+  @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  footer{text-align:center;font-size:9px;color:var(--dim);letter-spacing:2px;
+    padding-top:12px;border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">SISTEMA DE SINAL MACRO — AUTO</div>
+    <h1>WINFUT Signal</h1>
+  </div>
+  <div class="ts">
+    <span class="dot"></span><span id="ts"></span><br>
+    <span id="mkt">—</span>
+  </div>
+</header>
+
+<!-- STATUS -->
+<div class="sbar">
+  <span id="stIcon">⏳</span>
+  <span id="stMsg">Inicializando...</span>
+  <span id="stUpd"></span>
+  <span class="countdown" id="countdown"></span>
+  <button class="btn" id="btnR" onclick="fetchAll()" disabled>↻ ATUALIZAR</button>
+</div>
+
+<!-- LIVE DATA -->
+<div class="live-grid" id="liveGrid">
+  <div class="lc"><div class="lc-name">DXY</div><div class="sk"></div></div>
+  <div class="lc"><div class="lc-name">USD/JPY</div><div class="sk"></div></div>
+  <div class="lc"><div class="lc-name">US10Y</div><div class="sk"></div></div>
+  <div class="lc"><div class="lc-name">S&P 500</div><div class="sk"></div></div>
+</div>
+
+<!-- MACRO -->
+<div class="mac">
+  <div class="mac-lbl">CONTEXTO MACRO (definir manualmente)</div>
+  <div class="mac-btns">
+    <button class="mbtn" id="mBull" onclick="setMacro(1)">▲ RISK-ON</button>
+    <button class="mbtn aneu" id="mNeu" onclick="setMacro(0)">— MISTO</button>
+    <button class="mbtn" id="mBear" onclick="setMacro(-1)">▼ RISK-OFF</button>
+  </div>
+</div>
+
+<!-- SINAL -->
+<div class="sigbox" id="sigbox" style="display:none">
+  <div class="sigleft" id="sigleft">
+    <div class="sigdir" id="sigdir">—</div>
+  </div>
+  <div class="sigmeta">
+    <div class="slbl">SCORE DIRECIONAL (−100 a +100)</div>
+    <div class="srow">
+      <div class="sbar2"><div class="sfill" id="sfill"></div></div>
+      <div class="snum" id="snum">—</div>
+    </div>
+    <div class="sdesc" id="sdesc"></div>
+  </div>
+  <div class="gw">
+    <svg width="100" height="65" viewBox="0 0 110 70" style="overflow:visible">
+      <defs>
+        <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#ff1744"/>
+          <stop offset="50%" stop-color="#ffab00"/>
+          <stop offset="100%" stop-color="#00e676"/>
+        </linearGradient>
+      </defs>
+      <path d="M10,60 A50,50 0 0,1 100,60" fill="none" stroke="url(#g)" stroke-width="8" stroke-linecap="round"/>
+      <line id="needle" x1="55" y1="60" x2="55" y2="16" stroke="#fff" stroke-width="2"
+        stroke-linecap="round" transform="rotate(0,55,60)" style="transition:transform .8s"/>
+      <circle cx="55" cy="60" r="4" fill="#fff"/>
+    </svg>
+    <div class="glbl" id="glbl">—</div>
+  </div>
+</div>
+
+<!-- CONVERGÊNCIA -->
+<div class="convbox" id="convbox" style="display:none">
+  <div class="convhdr">
+    <span class="convtit">CONVERGÊNCIA DOS INDICADORES</span>
+    <span class="convbadge" id="convbadge">—</span>
+  </div>
+  <div class="convsum">
+    <span class="convpct" id="convpct">—</span>
+    <span class="convsub" id="convsub">—</span>
+  </div>
+  <div class="convdots" id="convdots"></div>
+  <div class="convadv" id="convadv"></div>
+</div>
+
+<!-- CARDS -->
+<div class="cgrid" id="cgrid"></div>
+
+<footer>WINFUT Signal v3.0 &nbsp;|&nbsp; Alpha Vantage &nbsp;|&nbsp; DXY · JPY · US10Y · S&P · Oil · VIX &nbsp;|&nbsp; Não constitui recomendação de investimento</footer>
+
+<script>
+const AV_KEY = 'C0V9M7O822QTZGKI';
+const UPDATE_INTERVAL = 15 * 60; // 15min entre atualizações (6 chamadas × 13s = ~1.5min de fetch)
+
+let macroVal = 0;
+let mktData = null;
+let countdown = UPDATE_INTERVAL;
+let countdownTimer = null;
+
+// ── TIMESTAMP ─────────────────────────────────────────────────
+function tickTS() {
+  const n = new Date();
+  document.getElementById('ts').textContent =
+    n.toLocaleDateString('pt-BR') + ' ' + n.toLocaleTimeString('pt-BR');
+  const d = n.getDay(), hm = n.getHours()*60 + n.getMinutes();
+  document.getElementById('mkt').textContent =
+    (d>=1&&d<=5&&hm>=570&&hm<1050) ? '🟢 WINFUT ABERTO' : '🔴 WINFUT FECHADO';
+}
+setInterval(tickTS, 1000); tickTS();
+
+// ── MACRO ──────────────────────────────────────────────────────
+function setMacro(v) {
+  macroVal = v;
+  ['Bull','Neu','Bear'].forEach(x => document.getElementById('m'+x).className='mbtn');
+  document.getElementById(v===1?'mBull':v===0?'mNeu':'mBear').className =
+    'mbtn ' + (v===1?'abull':v===0?'aneu':'abear');
+  if (mktData) renderAll();
+}
+
+// ── FETCH ALPHA VANTAGE ────────────────────────────────────────
+// Alpha Vantage endpoints:
+// FX_DAILY   → forex pairs
+// TIME_SERIES_DAILY → stocks/ETFs
+// GLOBAL_QUOTE → quote rápida
+
+async function avQuote(fn, params) {
+  const base = 'https://www.alphavantage.co/query?';
+  const p = new URLSearchParams({ function: fn, apikey: AV_KEY, ...params });
+  const r = await fetch(base + p.toString());
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+async function getDXY() {
+  // DXY via ETF UUP (tracks USD index) - GLOBAL_QUOTE
+  const d = await avQuote('GLOBAL_QUOTE', { symbol: 'UUP' });
+  const q = d['Global Quote'];
+  if (!q || !q['05. price']) throw new Error('DXY sem dados');
+  return {
+    price: parseFloat(q['05. price']),
+    chgPct: parseFloat(q['10. change percent'].replace('%','')),
+    label: 'DXY (UUP)'
+  };
+}
+
+async function getForex(from, to) {
+  const d = await avQuote('CURRENCY_EXCHANGE_RATE', {
+    from_currency: from, to_currency: to
+  });
+  const r = d['Realtime Currency Exchange Rate'];
+  if (!r) throw new Error(`${from}/${to} sem dados`);
+  const price = parseFloat(r['5. Exchange Rate']);
+  const prev  = parseFloat(r['8. Bid Price']) || price; // fallback
+  const chgPct = ((price - prev) / prev) * 100;
+  return { price, chgPct };
+}
+
+async function getQuote(symbol) {
+  const d = await avQuote('GLOBAL_QUOTE', { symbol });
+  const q = d['Global Quote'];
+  if (!q || !q['05. price']) throw new Error(symbol + ' sem dados');
+  return {
+    price: parseFloat(q['05. price']),
+    chgPct: parseFloat(q['10. change percent'].replace('%',''))
+  };
+}
+
+// Pausa entre chamadas para respeitar rate limit
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function fetchAll() {
+  const btn = document.getElementById('btnR');
+  btn.disabled = true;
+  if (countdownTimer) { clearInterval(countdownTimer); document.getElementById('countdown').textContent = ''; }
+
+  try {
+    setStatus('⏳', 'Buscando DXY (1/6)...');
+    const dxy = await getQuote('UUP');
+    await sleep(13000);
+
+    setStatus('⏳', 'Buscando USD/JPY (2/6)...');
+    const usdjpy = await getForexSimple('USD','JPY');
+    await sleep(13000);
+
+    setStatus('⏳', 'Buscando US10Y (3/6)...');
+    const us10y = await getQuote('IEF');
+    await sleep(13000);
+
+    setStatus('⏳', 'Buscando S&P 500 (4/6)...');
+    const sp = await getQuote('SPY');
+    await sleep(13000);
+
+    setStatus('⏳', 'Buscando WTI Oil (5/6)...');
+    const oil = await getQuote('USO');  // USO = ETF proxy do WTI Oil
+    await sleep(13000);
+
+    setStatus('⏳', 'Buscando VIX (6/6)...');
+    const vix = await getQuote('VIXY'); // VIXY = ETF proxy do VIX
+
+    mktData = { dxy, usdjpy, us10y, sp, oil, vix };
+    renderLive();
+    renderAll();
+
+    const now = new Date();
+    const isMktClosed = [0,6].includes(now.getDay());
+    document.getElementById('stUpd').textContent = 'Atualizado: ' + now.toLocaleTimeString('pt-BR');
+    setStatus('✅', isMktClosed
+      ? 'Dados de fechamento (mercado fechado) — Alpha Vantage'
+      : 'Dados carregados — Alpha Vantage');
+
+    startCountdown();
+
+  } catch(e) {
+    setStatus('❌', 'Erro: ' + e.message + ' — clique Atualizar para tentar novamente.');
+    console.error(e);
+  }
+
+  btn.disabled = false;
+}
+
+async function getForexSimple(from, to) {
+  // Usar FX_INTRADAY para pegar o valor mais recente
+  const d = await avQuote('CURRENCY_EXCHANGE_RATE', {
+    from_currency: from,
+    to_currency: to
+  });
+  const r = d['Realtime Currency Exchange Rate'];
+  if (!r) throw new Error(`${from}/${to} falhou`);
+  const price = parseFloat(r['5. Exchange Rate']);
+  // Alpha Vantage não dá chgPct direto no exchange rate, calculamos vs bid
+  const bid = parseFloat(r['8. Bid Price'] || price);
+  const chgPct = bid && bid !== price ? ((price - bid) / bid) * 100 : 0;
+  return { price, chgPct };
+}
+
+function setStatus(icon, msg) {
+  document.getElementById('stIcon').textContent = icon;
+  document.getElementById('stMsg').textContent = msg;
+}
+
+// ── COUNTDOWN AUTO-REFRESH ─────────────────────────────────────
+function startCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdown = UPDATE_INTERVAL;
+  countdownTimer = setInterval(() => {
+    countdown--;
+    const m = Math.floor(countdown/60), s = countdown%60;
+    document.getElementById('countdown').textContent =
+      `↻ em ${m}:${s.toString().padStart(2,'0')}`;
+    if (countdown <= 0) {
+      clearInterval(countdownTimer);
+      document.getElementById('countdown').textContent = '';
+      fetchAll();
+    }
+  }, 1000);
+}
+
+// ── RENDER LIVE CARDS ──────────────────────────────────────────
+function renderLive() {
+  const { dxy, usdjpy, us10y, sp, oil, vix } = mktData;
+  const items = [
+    { name:'DXY (UUP)',   val:dxy.price.toFixed(3),    chg:dxy.chgPct,    inv:true  },
+    { name:'USD/JPY',     val:usdjpy.price.toFixed(2), chg:usdjpy.chgPct, inv:false },
+    { name:'US10Y (IEF)', val:us10y.price.toFixed(2),  chg:us10y.chgPct,  inv:false },
+    { name:'S&P (SPY)',   val:sp.price.toFixed(2),     chg:sp.chgPct,     inv:false },
+    { name:'WTI Oil (USO)',val:oil.price.toFixed(2),   chg:oil.chgPct,    inv:false },
+    { name:'VIX (VIXY)',  val:vix.price.toFixed(2),    chg:vix.chgPct,    inv:true  },
+  ];
+  document.getElementById('liveGrid').innerHTML = items.map(c => {
+    const pos = c.inv ? c.chg < 0 : c.chg > 0;
+    const cls = Math.abs(c.chg) < 0.05 ? 'neu2' : pos ? 'pos' : 'neg';
+    const sign = c.chg >= 0 ? '+' : '';
+    return `<div class="lc">
+      <div class="lc-name">${c.name}</div>
+      <div class="lc-val">${c.val}</div>
+      <div class="lc-chg ${cls}">${sign}${c.chg.toFixed(2)}%</div>
+    </div>`;
+  }).join('');
+}
+
+// ── SCORING ────────────────────────────────────────────────────
+function calcScore() {
+  const { dxy, usdjpy, us10y, sp, oil, vix } = mktData;
+
+  // DXY: queda = bull p/ emergentes
+  let dxy_s = (dxy.chgPct < -0.3 ? 20 : dxy.chgPct < 0 ? 10 : dxy.chgPct > 0.3 ? -20 : -10)
+            + (dxy.chgPct < -0.5 ? 15 : dxy.chgPct > 0.5 ? -15 : 0);
+  dxy_s = Math.max(-35, Math.min(35, dxy_s));
+
+  // JPY: queda USDJPY = iene forte = risk-off
+  let jpy_s = (usdjpy.chgPct < -0.3 ? -20 : usdjpy.chgPct > 0.3 ? 15 : 0)
+            + (usdjpy.price < 142 ? -10 : usdjpy.price < 145 ? -5 : 5);
+  jpy_s = Math.max(-30, Math.min(30, jpy_s));
+
+  // IEF subindo = yield caindo = levemente positivo
+  let bond_s = (us10y.chgPct > 0.3 ? 8 : us10y.chgPct < -0.3 ? -10 : 0);
+  bond_s = Math.max(-20, Math.min(20, bond_s));
+
+  // S&P: principal driver
+  let sp_s = (sp.chgPct > 1 ? 25 : sp.chgPct > 0.3 ? 15 : sp.chgPct > 0 ? 5
+            : sp.chgPct > -0.5 ? -8 : -20)
+           + (sp.chgPct > 0 ? 10 : -5);
+  sp_s = Math.max(-45, Math.min(45, sp_s));
+
+  // Oil: petróleo subindo = positivo para Petrobras/IBOV
+  let oil_s = (oil.chgPct > 1 ? 15 : oil.chgPct > 0.3 ? 8 : oil.chgPct > 0 ? 3
+             : oil.chgPct > -0.5 ? -5 : -12);
+  oil_s = Math.max(-20, Math.min(20, oil_s));
+
+  // VIX: subindo = medo = bear para IBOV (lógica invertida)
+  let vix_s = (vix.chgPct > 5 ? -20 : vix.chgPct > 2 ? -12 : vix.chgPct > 0 ? -5
+             : vix.chgPct > -2 ? 5 : 12);
+  vix_s = Math.max(-20, Math.min(20, vix_s));
+
+  const mac_s = macroVal * 15;
+  const total = Math.max(-100, Math.min(100, dxy_s + jpy_s + bond_s + sp_s + oil_s + vix_s + mac_s));
+
+  return { total, dxy_s, jpy_s, bond_s, sp_s, oil_s, vix_s, mac_s };
+}
+
+// ── RENDER SIGNAL ──────────────────────────────────────────────
+function renderAll() {
+  const sc = calcScore();
+  const score = Math.round(sc.total);
+  const dir   = score >= 25 ? 'COMPRA' : score <= -25 ? 'VENDA' : 'NEUTRO';
+  const col   = dir==='COMPRA' ? '#00e676' : dir==='VENDA' ? '#ff1744' : '#ffab00';
+
+  const desc = dir==='COMPRA'
+    ? `Score +${score}. Indicadores externos favorecem abertura bullish do IBOV. Monitorar gap de abertura do WINFUT.`
+    : dir==='VENDA'
+    ? `Score ${score}. Pressão externa — abertura baixista esperada no WINFUT.`
+    : `Score ${score} — zona de indefinição. Aguardar confirmação nos primeiros candles.`;
+
+  // Sinal box
+  document.getElementById('sigbox').style.display = 'flex';
+  document.getElementById('sigleft').style.borderLeft = `4px solid ${col}`;
+  document.getElementById('sigleft').style.paddingLeft = '16px';
+  const sd = document.getElementById('sigdir');
+  sd.textContent = dir; sd.style.color = col; sd.style.textShadow = `0 0 30px ${col}`;
+  document.getElementById('snum').textContent = (score>=0?'+':'')+score;
+  document.getElementById('snum').style.color = col;
+  const sf = document.getElementById('sfill');
+  sf.style.width = ((sc.total+100)/2)+'%';
+  sf.style.background = col; sf.style.boxShadow = `0 0 8px ${col}`;
+  document.getElementById('sdesc').textContent = desc;
+  document.getElementById('needle').setAttribute('transform',`rotate(${(sc.total/100)*90},55,60)`);
+  document.getElementById('glbl').textContent = dir;
+
+  // Indicators
+  const { dxy, usdjpy, us10y, sp, oil, vix } = mktData;
+  const inds = [
+    { label:'DXY', score:sc.dxy_s, max:35,
+      badge: sc.dxy_s>5?'bull':sc.dxy_s<-5?'bear':'neu',
+      name:'DXY — U.S. Dollar Index', val:dxy.price.toFixed(3),
+      chg:(dxy.chgPct>=0?'+':'')+dxy.chgPct.toFixed(2)+'%', posChg:dxy.chgPct<0,
+      rat: dxy.chgPct<-0.3 ? 'DXY em queda — dólar fraco favorece emergentes e o real. Positivo para o IBOV.'
+         : dxy.chgPct>0.3  ? 'DXY em alta — dólar forte pressiona emergentes. Negativo para o IBOV.'
+         : 'DXY sem variação relevante — impacto neutro no IBOV.' },
+    { label:'USD/JPY', score:sc.jpy_s, max:30,
+      badge: sc.jpy_s>5?'bull':sc.jpy_s<-5?'bear':'neu',
+      name:'USD/JPY — Termômetro de Risco', val:usdjpy.price.toFixed(2),
+      chg: usdjpy.price<145 ? '⚠ Iene Forte' : '✓ Iene Estável', posChg:usdjpy.price>=145,
+      rat: usdjpy.price<142 ? 'Iene muito forte — aversão ao risco global. Pressiona emergentes.'
+         : usdjpy.price<145 ? 'Iene valorizado — stress moderado. Atenção na abertura.'
+         : 'USD/JPY estável — sem pressão de risk-off relevante.' },
+    { label:'US10Y', score:sc.bond_s, max:20,
+      badge: sc.bond_s>3?'bull':sc.bond_s<-3?'bear':'neu',
+      name:'US10Y — Treasuries (IEF)', val:us10y.price.toFixed(2),
+      chg:(us10y.chgPct>=0?'+':'')+us10y.chgPct.toFixed(2)+'%', posChg:us10y.chgPct>0,
+      rat: us10y.chgPct>0.3 ? 'IEF subindo — yield caindo, possível fuga para bonds. Levemente positivo.'
+         : us10y.chgPct<-0.3 ? 'IEF caindo — yield subindo, pressão sobre ativos de risco.'
+         : 'Treasuries estáveis — sem impacto relevante.' },
+    { label:'S&P', score:sc.sp_s, max:45,
+      badge: sc.sp_s>10?'bull':sc.sp_s<-10?'bear':'neu',
+      name:'S&P 500 (SPY) — Líder Global', val:sp.price.toFixed(2),
+      chg:(sp.chgPct>=0?'+':'')+sp.chgPct.toFixed(2)+'%', posChg:sp.chgPct>=0,
+      rat: sp.chgPct>0.3 ? 'S&P em alta — principal driver bullish. Correlação alta com o IBOV.'
+         : sp.chgPct<-0.3 ? 'S&P em queda — pressiona o IBOV na abertura.'
+         : 'S&P sem variação relevante — sem viés claro para o IBOV.' },
+    { label:'OIL', score:sc.oil_s, max:20,
+      badge: sc.oil_s>5?'bull':sc.oil_s<-5?'bear':'neu',
+      name:'WTI Oil (USO) — Petróleo', val:oil.price.toFixed(2),
+      chg:(oil.chgPct>=0?'+':'')+oil.chgPct.toFixed(2)+'%', posChg:oil.chgPct>=0,
+      rat: oil.chgPct>0.3 ? 'Petróleo em alta — positivo para Petrobras e IBOV. Favorece abertura bullish.'
+         : oil.chgPct<-0.3 ? 'Petróleo em queda — pressiona Petrobras e o IBOV.'
+         : 'Petróleo estável — sem impacto relevante no IBOV.' },
+    { label:'VIX', score:sc.vix_s, max:20,
+      badge: sc.vix_s>5?'bull':sc.vix_s<-5?'bear':'neu',
+      name:'VIX (VIXY) — Índice de Medo', val:vix.price.toFixed(2),
+      chg:(vix.chgPct>=0?'+':'')+vix.chgPct.toFixed(2)+'%', posChg:vix.chgPct<0,
+      rat: vix.chgPct>5 ? 'VIX em alta forte — medo elevado no mercado. Pressiona ativos de risco globalmente.'
+         : vix.chgPct>2 ? 'VIX subindo — aversão ao risco crescente. Atenção na abertura do WINFUT.'
+         : vix.chgPct<-2 ? 'VIX caindo — mercado mais tranquilo. Favorece ativos de risco.'
+         : 'VIX estável — sem stress de volatilidade relevante.' },
+    { label:'MACRO', score:sc.mac_s, max:15,
+      badge: macroVal===1?'bull':macroVal===-1?'bear':'neu',
+      name:'Contexto Macro Global', val:'Manual',
+      chg: macroVal===1?'▲ Risk-On':macroVal===-1?'▼ Risk-Off':'— Misto', posChg:macroVal>=0,
+      rat: macroVal===1 ? 'Ambiente favorável a emergentes. Capitais fluem para ativos de risco.'
+         : macroVal===-1 ? 'Aversão ao risco dominante. Pressão no BRL e IBOV esperada.'
+         : 'Cenário misto — FOMC dividido, incertezas geopolíticas. Cautela.' },
+  ];
+
+  // Convergência
+  const direcao = score>=25?'bull':score<=-25?'bear':'neu';
+  const alin = inds.filter(i=>i.badge===direcao).length;
+  const pct  = Math.round((alin/inds.length)*100);
+  const bullC= inds.filter(i=>i.badge==='bull').length;
+  const bearC= inds.filter(i=>i.badge==='bear').length;
+  const neuC = inds.filter(i=>i.badge==='neu').length;
+  const ccol = pct>=80?'#00e676':pct>=60?'#ffab00':'#ff1744';
+  const clvl = pct>=80?'ALTA':pct>=60?'MÉDIA':'BAIXA';
+  const cadv = pct>=80
+    ? `${alin} de 7 indicadores alinhados. Convergência forte — sinal confiável.`
+    : pct>=60
+    ? `${alin} de 7 indicadores alinhados. Convergência moderada — aguardar confirmação nos primeiros candles.`
+    : `Apenas ${alin} de 7 alinhados. Alta divergência — ${bullC}↑ vs ${bearC}↓. Risco de falso sinal.`;
+
+  document.getElementById('convbox').style.display = 'block';
+  const cb = document.getElementById('convbadge');
+  cb.textContent = clvl; cb.style.background = ccol+'22'; cb.style.color = ccol;
+  document.getElementById('convpct').textContent = pct+'%';
+  document.getElementById('convpct').style.color = ccol;
+  document.getElementById('convsub').textContent =
+    `${bullC} altista${bullC!==1?'s':''} · ${bearC} baixista${bearC!==1?'s':''} · ${neuC} neutro${neuC!==1?'s':''}`;
+  document.getElementById('convadv').textContent = cadv;
+
+  const bc = b => b==='bull'?'#00e676':b==='bear'?'#ff1744':'#ffab00';
+  document.getElementById('convdots').innerHTML = inds.map((ind,i) =>
+    `<div class="dwrap"><div class="ddot" style="background:${bc(ind.badge)};box-shadow:0 0 7px ${bc(ind.badge)}"></div>
+    <div class="dlbl">${ind.label}</div></div>${i<inds.length-1?'<span class="darr">›</span>':''}`
+  ).join('');
+
+  // Cards
+  document.getElementById('cgrid').innerHTML = inds.map(ind => {
+    const pct2 = Math.round(((ind.score+ind.max)/(ind.max*2))*100);
+    const c = bc(ind.badge);
+    const chgcls = ind.posChg ? 'pos' : 'neg';
+    const btxt = ind.badge==='bull' ? (ind.label==='USD/JPY'?'RISK-ON':'ALTISTA')
+               : ind.badge==='bear' ? (ind.label==='USD/JPY'?'RISK-OFF':'BAIXISTA') : 'NEUTRO';
+    return `<div class="card">
+      <div class="chdr">
+        <span class="cname">${ind.name}</span>
+        <span class="cbadge" style="background:${c}22;color:${c}">${btxt}</span>
+      </div>
+      <div class="cval">${ind.val}</div>
+      <div class="cchg ${chgcls}">${ind.chg}</div>
+      <div class="mbar"><div class="mfill" style="width:${pct2}%;background:${c}"></div></div>
+      <div class="crat">${ind.rat}<br>
+        <span class="csub">Score: ${ind.score>=0?'+':''}${ind.score} / ±${ind.max}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── INIT ───────────────────────────────────────────────────────
+window.onload = fetchAll;
+</script>
+</body>
+</html>
